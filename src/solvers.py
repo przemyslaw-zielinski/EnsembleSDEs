@@ -6,14 +6,19 @@ Created on Fri Jan 31 2020
 @author: Przemyslaw Zielinski
 """
 from numpy import asarray, array, vstack, newaxis, sqrt, zeros, einsum
+from math import ceil
+from .spaths import StochasticPath
 
-def sim(t0, ens0, sde, dt, nsteps, rng):
+def EMSolver(sde, ens0, tspan, dt, rng):
     '''
     Implements Euler method for solving the stochastic equation
 
         dx = sde.drift(t,x)*dt + sde.disp(t,x)*dw
+        x(t0) = ens0, t0 = tspan[0]
 
-    with timestep dt up to final time T. The initial ensemble ens0 is
+    with timestep dt up to final time T = tspan[1].
+
+    The initial ensemble ens0 is
     an array of shape (nsam, ndim) whose each row is treated as a
     deterministic inital condition of dimension ndim.
 
@@ -30,8 +35,11 @@ def sim(t0, ens0, sde, dt, nsteps, rng):
     '''
 
     ens0 = asarray(ens0)
+    t0, T = tspan
 
+    nsteps = ceil(T / dt) + 1
     tgrid = array([t0 + k * dt for k in range(nsteps + 1)]) # timegrid
+
     if sde.ndim == sde.nigp:
         def mult(drif_vec, dw):
             return drif_vec * dw
@@ -45,4 +53,4 @@ def sim(t0, ens0, sde, dt, nsteps, rng):
         sol[n+1] = sol[n] + dt*sde.drif(t, sol[n]) \
                  + sqrt(dt)*mult(sde.disp(t, sol[n]), dw)
 
-    return tgrid, sol
+    return StochasticPath(tgrid, sol)
