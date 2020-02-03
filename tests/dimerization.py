@@ -13,8 +13,8 @@ import math
 
 cwd = os.getcwd()
 sys.path.append(cwd + '/..')
-from src import models
-from src import solvers
+from spaths.models import SDE, ensnd
+from spaths.solvers import EMSolver
 
 
 # seed setting
@@ -23,10 +23,9 @@ rng = np.random.default_rng(seed)
 rng.integers(10**3, size=10**3)  # warm up of RNG
 
 # simulation parameters
+dt = 1e-4
 nsam = 100
-initime = 0.0
-timestep = 10**(-4)
-endtime = 10.0
+tspan = (0.0, 10.0)
 
 # initial conditions
 x0, y0 = [100.0]*nsam, [100.0]*nsam
@@ -47,19 +46,18 @@ def dispersion(t, u, du):
     du[1,1] = -np.sqrt(k2*u[1])
     du[1,2] = 0
 
-sde = models.SDE(drift, dispersion, (2, 3))
-ens0 = models.ensnd(x0, y0)
-
-nsteps = math.ceil((endtime + timestep) / timestep)
-tgrid, solution = solvers.sim(initime, ens0, sde, timestep, nsteps, rng)
+sde = SDE(drift, dispersion, (2, 3))
+ens0 = ensnd(x0, y0)
+sol = EMSolver(sde, ens0, tspan, dt, rng)
 
 fig, ax = plt.subplots(figsize=(8,6))
 ls = 16
 lw = 2
 
-idx = range(0, len(tgrid), 10)
-ax.plot(tgrid[idx], solution[idx,10,1], color="C1", alpha=.5)
-ax.plot(tgrid[idx], solution[idx,10,0], color="C0", alpha=.5)
+tplot = sol.t[::50]
+splot = sol(tplot)
+ax.plot(tplot, splot[:,10,1], color="C1", alpha=.5)
+ax.plot(tplot, splot[:,10,0], color="C0", alpha=.5)
 
 # slow_avg = np.average(solution[idx,:,0], axis=1)
 # slow_std = np.std(solution[idx,:,0], axis=1)

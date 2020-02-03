@@ -13,8 +13,8 @@ import math
 
 cwd = os.getcwd()
 sys.path.append(cwd + '/..')
-from src import models
-from src import solvers
+from spaths.models import SDE, ensnd
+from spaths.solvers import EMSolver
 
 file_name = "bimodalSF_paths"
 
@@ -29,10 +29,9 @@ ytemp = .07
 eps = .1
 
 # simulation parameters
+dt = 1.5e-2
 nsam = 100
-initime = 0.0
-timestep = 1.5e-2
-endtime = 100.0
+tspan = (0.0, 100.0)
 
 # initial conditions
 x0, y0 = [.5]*nsam, [-1]*nsam
@@ -45,24 +44,27 @@ def dispersion(t, x, dx):
     dx[0] = np.sqrt(2*xtemp)
     dx[1] = np.sqrt(2*ytemp/eps)
 
-sde = models.SDE(drift, dispersion, noise_rate=(2,2))
-iniens = models.ensnd(x0, y0)
-
-nsteps = math.ceil((endtime + timestep) / timestep)
-tgrid, solution = solvers.sim(initime, iniens, sde, timestep, nsteps, rng)
+sde = SDE(drift, dispersion, noise_rate=(2,2))
+ens0 = ensnd(x0, y0)
+sol = EMSolver(sde, ens0, tspan, dt, rng)
+print(sol)
 
 fig, ax = plt.subplots(figsize=(8,6))
 ls = 16
 lw = 2
 
-ax.plot(tgrid, solution[:,0,1], color="C1", alpha=.5)
-ax.plot(tgrid, solution[:,0,0], color="C0", alpha=.5)
+print(sol(0).shape)
 
-slow_avg = np.average(solution[:,:,0], axis=1)
-slow_std = np.std(solution[:,:,0], axis=1)
-ax.plot(tgrid, slow_avg, color="C0", linewidth=lw)
-ax.fill_between(tgrid, slow_avg - slow_std, slow_avg + slow_std,
-                facecolor="C0", alpha=.2)
+tplot = sol.t[::4]
+splot = sol(tplot)
+ax.plot(tplot, splot[:,0,1], color="C1", alpha=.5)
+ax.plot(tplot, splot[:,0,0], color="C0", alpha=.5)
+
+# slow_avg = np.average(solution[:,:,0], axis=1)
+# slow_std = np.std(solution[:,:,0], axis=1)
+# ax.plot(tgrid, slow_avg, color="C0", linewidth=lw)
+# ax.fill_between(tgrid, slow_avg - slow_std, slow_avg + slow_std,
+#                 facecolor="C0", alpha=.2)
 
 ax.tick_params(
         axis='both',        # changes apply to

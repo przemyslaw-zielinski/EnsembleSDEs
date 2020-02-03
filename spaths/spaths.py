@@ -17,6 +17,12 @@ class StochasticPath():
         self.t = tgrid
         self.val = vgrid
 
+    def __str__(self):
+        return (
+            f"Stochastic path from time {self.t[0]} to {self.t[-1]} "
+            f"based on {self.val.shape[1]} replicas"
+            )
+
     def __call__(self, times):
 
         times = np.asarray(times)
