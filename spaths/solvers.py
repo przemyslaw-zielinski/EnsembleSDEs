@@ -5,9 +5,9 @@ Created on Fri Jan 31 2020
 
 @author: Przemyslaw Zielinski
 """
-from numpy import asarray, array, vstack, newaxis, sqrt, zeros, einsum
-from math import ceil
-from .spaths import StochasticPath
+import numpy
+import math
+from .spath import StochasticPath
 
 def EMSolver(sde, ens0, tspan, dt, rng):
     '''
@@ -34,23 +34,23 @@ def EMSolver(sde, ens0, tspan, dt, rng):
             ens0 included as the first row of this array.
     '''
 
-    ens0 = asarray(ens0)
+    ens0 = numpy.asarray(ens0)
     t0, T = tspan
 
-    nsteps = ceil(T / dt) + 1
-    tgrid = array([t0 + k * dt for k in range(nsteps + 1)]) # timegrid
+    nsteps = math.ceil(T / dt) + 1
+    tgrid = numpy.array([t0 + k * dt for k in range(nsteps + 1)]) # timegrid
 
     if sde.ndim == sde.nigp:
         def mult(drif_vec, dw):
             return drif_vec * dw
     else:
         def mult(drif_mat, dw):
-            return einsum('ijk,ik->ij', drif_mat, dw)
+            return numpy.einsum('ijk,ik->ij', drif_mat, dw)
 
-    sol = vstack((ens0[newaxis,:], zeros((nsteps,) + ens0.shape)))
+    sol = numpy.vstack((ens0[numpy.newaxis,:], numpy.zeros((nsteps,) + ens0.shape)))
     for n, t in enumerate(tgrid[:-1]):
         dw = rng.standard_normal((len(ens0), sde.nigp))
         sol[n+1] = sol[n] + dt*sde.drif(t, sol[n]) \
-                 + sqrt(dt)*mult(sde.disp(t, sol[n]), dw)
+                 + math.sqrt(dt)*mult(sde.disp(t, sol[n]), dw)
 
     return StochasticPath(tgrid, sol)

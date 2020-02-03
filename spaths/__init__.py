@@ -1,4 +1,12 @@
-# @Author: Przemyslaw Zielinski <pz>
-# @Date:   2019-10-02T15:52:52+02:00
-# @Last modified by:   pz
-# @Last modified time: 2019-10-09T11:24:36+02:00
+"""
+Ensemble simulation of stochastic processes
+===========================================
+
+This module contains tools for simulating stochastic processes.
+"""
+
+# import spaths.models
+# import spaths.solvers
+
+from spaths.models import SDE, make_ens
+from spaths.solvers import EMSolver

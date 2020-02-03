@@ -6,7 +6,7 @@ Created on Mon 3 Feb 2020
 @author: Przemyslaw Zielinski
 """
 
-import numpy as np
+import numpy
 
 class StochasticPath():
 
@@ -25,10 +25,10 @@ class StochasticPath():
 
     def __call__(self, times):
 
-        times = np.asarray(times)
+        times = numpy.asarray(times)
         scalar_time = False
         if times.ndim == 0:
-            times = times[np.newaxis]  # Makes x 1D
+            times = times[numpy.newaxis]  # Makes x 1D
             scalar_time = True
 
         idxs = []
@@ -38,5 +38,5 @@ class StochasticPath():
 
         x = self.val[idxs]
         if scalar_time:
-            x = np.squeeze(x, axis=0)
+            x = numpy.squeeze(x, axis=0)
         return x

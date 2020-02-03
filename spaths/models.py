@@ -6,7 +6,7 @@ Created on Fri Jan 31 2020
 @author: Przemyslaw Zielinski
 """
 
-import numpy as np
+import numpy
 
 class SDE():
 
@@ -31,22 +31,22 @@ class SDE():
 
     def drif(self, t, ens):
         self.test_dim(ens)
-        dx = np.zeros((self.ndim, len(ens)))
+        dx = numpy.zeros((self.ndim, len(ens)))
         self.drift(t, ens.T, dx)
         return dx.T # back to (nsam, ndim) array
 
     def disp(self, t, ens):
         self.test_dim(ens)
-        dx = np.zeros(self.nrp + (len(ens),))
+        dx = numpy.zeros(self.nrp + (len(ens),))
         self.dispersion(t, ens.T, dx)
-        return np.moveaxis(dx, -1, 0) # back to (nsam, ndim, nigp) array
+        return numpy.moveaxis(dx, -1, 0) # back to (nsam, ndim, nigp) array
 
     def test_dim(self, ens):
         if ens.ndim != 2 or ens.shape[1] != self.ndim:
             raise IndexError(f"Bad ensemble: shape={ens.shape}.")
 
-def ensnd(*coords):
+def make_ens(*coords):
     '''
     Builds appropriate ensemble from iterable of positions coordinates.
     '''
-    return np.array(coords).T
+    return numpy.array(coords).T

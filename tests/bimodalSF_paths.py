@@ -13,8 +13,7 @@ import math
 
 cwd = os.getcwd()
 sys.path.append(cwd + '/..')
-from spaths.models import SDE, ensnd
-from spaths.solvers import EMSolver
+import spaths
 
 file_name = "bimodalSF_paths"
 
@@ -44,9 +43,9 @@ def dispersion(t, x, dx):
     dx[0] = np.sqrt(2*xtemp)
     dx[1] = np.sqrt(2*ytemp/eps)
 
-sde = SDE(drift, dispersion, noise_rate=(2,2))
-ens0 = ensnd(x0, y0)
-sol = EMSolver(sde, ens0, tspan, dt, rng)
+sde = spaths.SDE(drift, dispersion, noise_rate=(2,2))
+ens0 = spaths.make_ens(x0, y0)
+sol = spaths.EMSolver(sde, ens0, tspan, dt, rng)
 print(sol)
 
 fig, ax = plt.subplots(figsize=(8,6))
