@@ -18,7 +18,7 @@ import spaths
 file_name = "bimodalSF_paths"
 
 # seed setting
-seed = 357
+seed = 3579
 rng = np.random.default_rng(seed)
 rng.integers(10**3, size=10**3)  # warm up of RNG
 
@@ -43,7 +43,7 @@ def dispersion(t, x, dx):
     dx[0] = np.sqrt(2*xtemp)
     dx[1] = np.sqrt(2*ytemp/eps)
 
-sde = spaths.SDE(drift, dispersion, noise_rate=(2,2))
+sde = spaths.SDE(drift, dispersion)
 ens0 = spaths.make_ens(x0, y0)
 sol = spaths.EMSolver(sde, ens0, tspan, dt, rng)
 print(sol)
@@ -55,15 +55,16 @@ lw = 2
 print(sol(0).shape)
 
 tplot = sol.t[::4]
-splot = sol(tplot)
-ax.plot(tplot, splot[:,0,1], color="C1", alpha=.5)
-ax.plot(tplot, splot[:,0,0], color="C0", alpha=.5)
+sam_idx = rng.integers(nsam)
+sam_path = sol.p[sam_idx][::4]
+ax.plot(tplot, sam_path, alpha=.5)
 
-# slow_avg = np.average(solution[:,:,0], axis=1)
-# slow_std = np.std(solution[:,:,0], axis=1)
-# ax.plot(tgrid, slow_avg, color="C0", linewidth=lw)
-# ax.fill_between(tgrid, slow_avg - slow_std, slow_avg + slow_std,
-#                 facecolor="C0", alpha=.2)
+splot = sol(tplot)
+slow_avg = np.average(splot[:,:,0], axis=1)
+slow_std = np.std(splot[:,:,0], axis=1)
+ax.plot(tplot, slow_avg, color="C0", linewidth=lw)
+ax.fill_between(tplot, slow_avg - slow_std, slow_avg + slow_std,
+                facecolor="C0", alpha=.2)
 
 ax.tick_params(
         axis='both',        # changes apply to

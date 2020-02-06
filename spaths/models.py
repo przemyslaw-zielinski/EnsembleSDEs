@@ -10,7 +10,7 @@ import numpy
 
 class SDE():
 
-    def __init__(self, drift, dispersion, noise_rate):
+    def __init__(self, drift, dispersion, noise_mixing_dim=0):
         '''
         drift and dispersion have to be functions of scalar time t
         and a number ndim of array coordinates x, y, z, ...
@@ -20,26 +20,24 @@ class SDE():
             a tuple of arrays storing the coordinates of the result
         '''
 
-        self.ndim = noise_rate[0]
-        self.nigp = noise_rate[1]
-        if self.ndim == self.nigp:
-            self.nrp = (self.ndim,)
-        else:
-            self.nrp = noise_rate
         self.drift = drift
         self.dispersion = dispersion
+        if noise_mixing_dim == 0:
+            self.nmd = ()
+        else:  # TODO: add case for a scalar noise (nmd=1)
+            self.nmd = (noise_mixing_dim,)
 
     def drif(self, t, ens):
-        self.test_dim(ens)
-        dx = numpy.zeros((self.ndim, len(ens)))
-        self.drift(t, ens.T, dx)
-        return dx.T # back to (nsam, ndim) array
+        # self.test_dim(ens)
+        dx = numpy.zeros(ens.shape)
+        self.drift(t, ens.T, dx.T)  # (ndim, nsam)
+        return dx
 
     def disp(self, t, ens):
-        self.test_dim(ens)
-        dx = numpy.zeros(self.nrp + (len(ens),))
-        self.dispersion(t, ens.T, dx)
-        return numpy.moveaxis(dx, -1, 0) # back to (nsam, ndim, nigp) array
+        # self.test_dim(ens)
+        dx = numpy.zeros(ens.shape + self.nmd)
+        self.dispersion(t, ens.T, numpy.moveaxis(dx, 0, -1))  # (ndim, (nmd,) nsam)
+        return dx
 
     def test_dim(self, ens):
         if ens.ndim != 2 or ens.shape[1] != self.ndim:

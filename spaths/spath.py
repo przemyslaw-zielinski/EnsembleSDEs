@@ -10,17 +10,21 @@ import numpy
 
 class StochasticPath():
 
-    def __init__(self, tgrid, vgrid):
+    def __init__(self, tgrid, xgrid):
         '''
         Stores ensemble of trajectories.
+        -> tgrid.shape = (ntimes,)
+        -> xgrid.shape = (ntimes, nsams, ndims)
         '''
         self.t = tgrid
-        self.val = vgrid
+        self.x = xgrid
+        self.p = numpy.swapaxes(self.x, 0, 1)  # shape = (nsams, ntimes, ndims)
 
     def __str__(self):
         return (
-            f"Stochastic path from time {self.t[0]} to {self.t[-1]} "
-            f"based on {self.val.shape[1]} replicas"
+            f"Stochastic path of {self.x.shape[2]} dimensions: "
+            f"from time {self.t[0]} to {self.t[-1]} "
+            f"based on {self.x.shape[1]} replicas"
             )
 
     def __call__(self, times):
@@ -30,13 +34,15 @@ class StochasticPath():
         if times.ndim == 0:
             times = times[numpy.newaxis]  # Makes x 1D
             scalar_time = True
+        if numpy.amin(times) < self.t[0] or numpy.amax(times) > self.t[-1]:
+            raise ValueError("Time out of bounds.")
 
         idxs = []
         for t in times:
             diff = self.t - t
             idxs.append((diff>=0).argmax())
 
-        x = self.val[idxs]
+        x = self.x[idxs]
         if scalar_time:
             x = numpy.squeeze(x, axis=0)
         return x
