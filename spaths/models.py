@@ -29,6 +29,7 @@ class SDE():
 
     def drif(self, t, ens):
         # self.test_dim(ens)
+        # breakpoint()
         dx = numpy.zeros(ens.shape)
         self.drift(t, ens.T, dx.T)  # (ndim, nsam)
         return dx
