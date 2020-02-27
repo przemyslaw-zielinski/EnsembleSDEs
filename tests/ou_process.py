@@ -14,6 +14,15 @@ cwd = os.getcwd()
 sys.path.append(cwd + '/..')
 import spaths
 
+# model parameters
+eps = 1 / 50
+bet = 20
+
+A = np.array(
+    [[-1, 1],
+     [ 0, -1 / eps]]
+)
+B = np.diag([np.sqrt(2 / bet), np.sqrt(2 / (eps*bet))])
 
 # seed setting
 seed = 3579
@@ -21,21 +30,12 @@ rng = np.random.default_rng(seed)
 rng.integers(10**3, size=10**3)  # warm up of RNG
 
 # simulation parameters
-dt = 1e-2
+dt = eps / 2
 nsam = 10000
 tspan = (0.0, 10.0)
 
-eps = 1 / 50
-
-A = np.array(
-    [[-1, 1],
-     [ 0, -1 /eps]]
-)
-
-B = np.diag([1.0, np.sqrt(1/eps)]) 
-
 # initial conditions
-x0, y0 = [10.0]*nsam, [10.0]*nsam
+x0, y0 = [2.0]*nsam, [2.0]*nsam
 
 def drift(t, u, du):
     du[:] = A @ u  # need to use [:] because du is a local view
@@ -114,4 +114,7 @@ ens = sol(tspan[1])
 print(f"Norm of mean differences: {np.linalg.norm(np.average(ens, axis=0))}")
 print(f"Norm of cov differences: "
       f"{np.linalg.norm(cov_inv_dt(A, B, dt) - np.cov(ens.T))}")
+print("Covariance matrix of invariant Gaussian for EM:")
+print(cov_inv_dt(A, B, dt))
+print("Covariance matrix of invariant Gaussian")
 print(cov_inv(A, B))
