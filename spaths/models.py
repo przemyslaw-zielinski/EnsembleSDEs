@@ -7,6 +7,8 @@ Created on Fri Jan 31 2020
 """
 
 import numpy
+from jax import grad, vmap, jit
+from inspect import signature
 
 class SDE():
 
@@ -43,6 +45,27 @@ class SDE():
     def test_dim(self, ens):
         if ens.ndim != 2 or ens.shape[1] != self.ndim:
             raise IndexError(f"Bad ensemble: shape={ens.shape}.")
+
+class OverdampedLangevin(SDE):
+    '''
+    dX = -gradV(t,X)dt + sqrt(2*inv_temp**(-1))dW
+    '''
+    def __init__(self, V, inv_temp):
+
+        self.gradV = jit(vmap(grad(V, 1), in_axes=(None, 1), out_axes=1))
+        # for vmap
+        # in_axes=(None, 1): don't parallelize over the time and parallelize
+        #                    over the samples axis
+        # out_axes=1: put result along second axis
+        self.inv_temp = inv_temp
+
+        super().__init__(self.oLdrift, self.oLdispersion)
+
+    def oLdrift(self, t, u, du):
+        du[:] = -self.gradV(t, u)
+
+    def oLdispersion(self, t, u, du):
+        du[:] = numpy.sqrt(2 / self.inv_temp)
 
 def make_ens(*coords):
     '''
