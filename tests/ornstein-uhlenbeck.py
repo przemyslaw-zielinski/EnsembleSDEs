@@ -6,17 +6,21 @@ Created on Thu 6 Feb 2020
 @author: Przemyslaw Zielinski
 """
 
-import matplotlib.pyplot as plt
-import numpy as np
+# set cwd to supfolder for local import
 import sys, os
-
 cwd = os.getcwd()
 sys.path.append(cwd + '/..')
+
+import matplotlib.pyplot as plt
+import jax.numpy as jnp
+import numpy as np
 import spaths
 
+file_name = "ornstein-uhlenbeck"
+
 # model parameters
-eps = 1 / 50
-bet = 20
+eps = 1 / 50  # time scale separation
+bet = 20  # inverse temperature
 
 A = np.array(
     [[-1, 1],
@@ -64,7 +68,7 @@ ax.tick_params(
         labelsize=ls)
 
 fig.tight_layout()
-fig.savefig(f"figs/ou_process.pdf")
+fig.savefig(f"figs/{file_name}.pdf")
 plt.close()
 
 def cov_inv(drmat, dimat, tol=10**(-10)):

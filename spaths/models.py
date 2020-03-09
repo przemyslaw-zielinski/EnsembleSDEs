@@ -52,8 +52,9 @@ class OverdampedLangevin(SDE):
     '''
     def __init__(self, V, inv_temp):
 
+        V = squeeze(V)
         self.gradV = jit(vmap(grad(V, 1), in_axes=(None, 1), out_axes=1))
-        # for vmap
+        # settings for vmap
         # in_axes=(None, 1): don't parallelize over the time and parallelize
         #                    over the samples axis
         # out_axes=1: put result along second axis
@@ -72,3 +73,8 @@ def make_ens(*coords):
     Builds appropriate ensemble from iterable of positions coordinates.
     '''
     return numpy.array(coords).T
+
+def squeeze(func):
+    def wrapper(*args, **kwargs):
+        return numpy.squeeze(func(*args, **kwargs))
+    return wrapper

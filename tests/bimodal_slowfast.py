@@ -15,7 +15,7 @@ cwd = os.getcwd()
 sys.path.append(cwd + '/..')
 import spaths
 
-file_name = "bimodalSF_paths"
+file_name = "bimodal_slowfast"
 
 # seed setting
 seed = 3579
