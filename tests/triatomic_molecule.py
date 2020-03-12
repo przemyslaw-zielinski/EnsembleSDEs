@@ -14,7 +14,7 @@ import jax.numpy as jnp
 import numpy as np
 import spaths
 
-file_name = "triatom_molecule"
+file_name = "triatomic_molecule"
 
 # model parameters
 sep = 10**(-3)
