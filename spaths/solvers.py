@@ -62,3 +62,6 @@ def generate_tgrid(tspan, dt):
             break
         t += dt
     return np.array(tgrid), len(tgrid) - 1
+
+def boxFold(x, box_length=1):
+    return np.remainder(x, box_length)
