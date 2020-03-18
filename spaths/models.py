@@ -9,6 +9,7 @@ Created on Fri Jan 31 2020
 import numpy
 from jax import grad, vmap, jit
 from inspect import signature
+from .potentials import PairwisePotential
 
 class SDE():
 
@@ -52,8 +53,11 @@ class OverdampedLangevin(SDE):
     '''
     def __init__(self, V, inv_temp):
 
-        V = squeeze(V)
-        self.gradV = jit(vmap(grad(V, 1), in_axes=(None, 1), out_axes=1))
+        if isinstance(V, PairwisePotential):
+            self.gradV = V.grad
+        else:
+            V = squeeze(V)
+            self.gradV = jit(vmap(grad(V, 1), in_axes=(None, 1), out_axes=1))
         # settings for vmap
         # in_axes=(None, 1): don't parallelize over the time and parallelize
         #                    over the samples axis
