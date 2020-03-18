@@ -17,14 +17,16 @@ class PairwisePotential():
 
     def __call__(self, t, x):
         npart = len(x) // self.dim
-        pidx = [tuple(range(i, i+self.dim)) for i in range(npart)]
+        # pidx = [tuple(range(i, i+self.dim)) for i in range(npart)]
 
         val = 0.0
-        for idx, m in enumerate(pidx[:-1]):
-            for n in pidx[idx+1:]:
+        for i1 in range(npart-1):
+            for i2 in range(i1+1, npart):
                 # breakpoint()
-                dist = boxDist(x[m], x[n], box_length=self.box_length)
-                val += self.W(dist)
+                p1 = self.get_particle(i1, x)
+                p2 = self.get_particle(i2, x)
+                dist = box_dist(p1, p2, box_length=self.box_length)
+                val += self.W[i1][i2](dist)
 
         return val
 
@@ -41,8 +43,9 @@ class PairwisePotential():
                 p1 = self.get_particle(i1, x)
                 p2 = self.get_particle(i2, x)
 
-                dist = boxDist(p1, p2, box_length=self.box_length)
-                force = self.W[i1][i2].der(dist) * (p1 - p2) / dist
+                dist = box_dist(p1, p2, box_length=self.box_length)
+                diff = box_diff(p1, p2, box_length=self.box_length)
+                force = self.W[i1][i2].der(dist) * diff / dist
                 # breakpoint()
 
                 grad[self.dim*i1:self.dim*(i1+1)] += force
@@ -69,31 +72,31 @@ class DSPotential():
         inner_der = -2 * arg
         return 2*self.bh * (1 - arg**2) * inner_der
 
-# Weeks–Chandler–Andersen potential
 class WCAPotential():
     '''
-    Weeks-Chandler-Andersen (WCA) potential is the Lenar-Jones potential
-    truncated at the minimum potential energy at a distance
-        r = 2**(1/6) * interaction_radius
-    on the length scale and shifted upward by the amount strength
-    on the energy scale such that both the energy and force are zero at
+    Weeks-Chandler-Andersen (WCA) potential is the Lennard-Jones potential
+        eps * ((sigma/r)^12 - 2*(sigma/r)^6)
+    truncated at a distance sigma, that corresponds to the minimum potential
+    energy of LJ potential.
+    It is also shifted upward by the amount eps on the energy scale,
+    such that both the energy and force are zero at
     or beyond the cutoff distance.
     '''
-    def __init__(self, strength, interaction_radius):
+    def __init__(self, strength, interaction_distance):
         self.s = strength
-        self.ir = interaction_radius
+        self.id = interaction_distance
 
     def __call__(self, dist):
-        # cutoff_dist = np.maximum(dist, 2**(1/6)*self.ir)
-        if dist <= 2**(1/6)*self.ir:
-            return 4*self.s*((self.ir/dist)**12 - (self.ir/dist)**6) + self.s
+        if dist <= self.id:
+            r = self.id / dist
+            return self.s*(r**12 - 2*r**6 + 1)
         else:
             return 0.0
 
     def der(self, dist):
-        # return -24*self(distance) / distance
-        if dist <= 2**(1/6)*self.ir:
-            return -24*self.s*(2*(self.ir/dist)**11 - (self.ir/dist)**5)*self.ir
+        if dist <= self.id:
+            r = self.id / dist
+            return -12*self.s * (r**13 - r**7) / self.id
         else:
             return 0.0
 
@@ -117,7 +120,7 @@ def initialize_particles(nparts, V, inv_temp, dt, nsteps, rng):
     relax_sol = spaths.EMSolver(relax_sde, unif_ens0, (0.0, t_relax), dt, rng)
 
     # dimer_distance = [
-    #     boxDist(x[0,0:2], x[0,2:4], box_length=V.box_length)
+    #     box_dist(x[0,0:2], x[0,2:4], box_length=V.box_length)
     #     for x in relax_sol.x
     # ]
     # plt.plot(relax_sol.t, dimer_distance, alpha=.6)
@@ -125,7 +128,14 @@ def initialize_particles(nparts, V, inv_temp, dt, nsteps, rng):
 
     return relax_sol.x[nsteps]
 
-def boxDist(p1, p2, box_length=1):
+def box_fold(x, box_length=1):
+    return np.remainder(x, box_length)
+
+def box_diff(p1, p2, box_length=1):
     dp = p1 - p2
     dp -= np.rint(dp / box_length) * box_length
+    return dp
+
+def box_dist(p1, p2, box_length=1):
+    dp = box_diff(p1, p2, box_length)
     return np.linalg.norm(dp)
