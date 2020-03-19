@@ -48,24 +48,43 @@ yc0 = np.array([equ_len] * nsam)
 sde = spaths.OverdampedLangevin(V, inv_temp)
 ens0 = spaths.make_ens(xa0, xc0, yc0)
 sol = spaths.EMSolver(sde, ens0, tspan, dt, rng)
-
-fig, ax = plt.subplots(figsize=(8,6))
-ls = 16
-lw = 2
-
 path = sol.p[0]
-path_xa, path_xc, path_yc = path.T
-path_ang = np.pi / 2 - np.arctan(path_xc / path_yc)
 
-# ax.plot(sol.t[::5], path[::5])  # to plot all coords at once
-ax.plot(sol.t[::5], path_xa[::5], label="xa", alpha=.6)
-ax.plot(sol.t[::5], path_xc[::5], label="xc", alpha=.6)
-ax.plot(sol.t[::5], path_yc[::5], label="yc", alpha=.6)
-ax.plot(sol.t[::5], path_ang[::5], label="$\Theta$")
+
+step=4
+t = sol.t[::step]
+path = sol.p[0,::step]
+path_xa, path_xc, path_yc = path.T
+
+fig, ax = plt.subplots(figsize=(7,5))
+
+# ax.plot(t, path)  # to plot all coords at once
+ax.plot(t, path_xa, label="$x_A$", alpha=.6)
+ax.plot(t, path_xc, label="$x_C$", alpha=.6)
+ax.plot(t, path_yc, label="$y_C$", alpha=.6)
 
 ax.legend()
 ax.set_xlabel("time")
 
 fig.tight_layout()
-fig.savefig(f"figs/{file_name}.pdf")
-plt.close()
+fig.savefig(f"figs/{file_name}_dofs.pdf")
+plt.close(fig)
+
+fig, ax = plt.subplots(nrows=3, figsize=(7,6), sharex=True)
+
+path_ang = np.pi / 2 - np.arctan(path_xc / path_yc)
+path_dist = np.sqrt((path_xa-path_xc)**2 + path_yc**2)
+
+ax[0].plot(t, path_xc, label="x_{C}", alpha=.6)
+ax[1].plot(t, path_ang, label="$\Theta_{AC}$", alpha=.6)
+ax[2].plot(t, path_dist, label="$d_{AC}$", alpha=.6)
+
+ax[0].set_ylabel("$x_{C}$", rotation=0, labelpad=10)
+ax[1].set_ylabel("$\Theta_{AC}$", rotation=0, labelpad=15)
+ax[2].set_ylabel("$D_{AC}$", rotation=0, labelpad=15)
+
+ax[-1].set_xlabel("time")
+
+fig.tight_layout()
+fig.savefig(f"figs/{file_name}_slow.pdf")
+plt.close(fig)
