@@ -115,7 +115,7 @@ def initialize_particles(nparts, V, inv_temp, dt, nsteps, rng):
     def relax_dispersion(t, x, dx):
         dx[:] = np.sqrt(2 / inv_temp)
 
-    relax_sde = spaths.SDE(relax_drift, relax_dispersion)
+    relax_sde = spaths.ItoSDE(relax_drift, relax_dispersion)
     unif_ens0 = rng.uniform(high=V.box_length, size=(1, 2*nparts))
     relax_sol = spaths.EMSolver(relax_sde, unif_ens0, (0.0, t_relax), dt, rng)
 

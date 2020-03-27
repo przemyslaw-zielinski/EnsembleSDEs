@@ -65,3 +65,9 @@ def generate_tgrid(tspan, dt):
 
 def boxFold(x, box_length=1):
     return np.remainder(x, box_length)
+
+def make_ens(*coords):
+    '''
+    Builds appropriate ensemble from iterable of positions coordinates.
+    '''
+    return np.array(coords).T
