@@ -8,7 +8,7 @@ Created on Fri Mar 27 2020
 
 import numpy as np
 from .ito import ItoSDE
-from jax import grad, vmap, jit
+from jax import grad, vmap, jit  # TODO: catch potential import error
 from ..potentials import PairwisePotential
 
 class OverdampedLangevin(ItoSDE):

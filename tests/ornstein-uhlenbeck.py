@@ -27,6 +27,7 @@ A = np.array(
      [ 0, -1 / eps]]
 )
 B = np.diag([np.sqrt(2 / bet), np.sqrt(2 / (eps*bet))])
+b = np.array([np.sqrt(2 / bet), np.sqrt(2 / (eps*bet))])
 
 # seed setting
 seed = 3579
@@ -45,9 +46,13 @@ def drift(t, u, du):
     du[:] = A @ u  # need to use [:] because du is a local view
 
 def dispersion(t, u, du):
-    du[0], du[1] = np.diag(B)
+    # du[0], du[1] = b[0], b[1]  # works but requires specifying each dimension
+    # du[:] = b * np.ones_like(u)  # doesn't work
+    # du[:] = B @ np.ones_like(u)  # only works for diagonal matrices
+    # du[:] = B[..., np.newaxis]  # works with nmd specified
+    du[:] = b[:, np.newaxis]
 
-sde = spaths.SDE(drift, dispersion)
+sde = spaths.SDE(drift, dispersion)#, noise_mixing_dim=B.shape[1])
 ens0 = spaths.make_ens(x0, y0)
 sol = spaths.EMSolver(sde, ens0, tspan, dt, rng)
 
