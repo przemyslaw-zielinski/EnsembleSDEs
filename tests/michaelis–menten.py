@@ -38,7 +38,8 @@ vol = 1e-15  # volume of system
 y0 = np.zeros(4)
 y0[0] = np.round(5e-7*nA*vol)  # molecules of substrate S
 y0[1] = np.round(2e-7*nA*vol)  # molecules of enzyme E
-ens0 = y0.reshape(1, 4)
+ens0 = np.tile(y0, (5, 1))
+# print(ens0)
 
 c1, c2, c3 = 1e6/(nA*vol), 1e-4, 0.1
 
@@ -54,12 +55,14 @@ t_span = (0.0, 50.0)
 dt = t_span[1] / 250
 
 cle = spaths.ChemicalLangevin(4, [binding, dissociation, product])
+# print(cle.ar_idxs)
+# print(cle.ar_coeff)
 sol = spaths.EMSolver(cle, ens0, t_span, dt, rng)
 
 
 fig, ax = plt.subplots(figsize=(8,6))
 
-ax.plot(sol.t, sol.p[0])
+ax.plot(sol.t, sol.p[1])
 
 fig.tight_layout()
 fig.savefig(f"figs/{file_name}.pdf")

@@ -36,13 +36,14 @@ class Reaction:
                             f"{subs.coeff}S_{subs.species_id}"
                             for subs in self.substrates
                          )
-
+        if left == "": left = "0"  # production
+        
         # repr of all products
         right = ' + '.join(
                              f"{prod.coeff}S_{prod.species_id}"
                              for prod in self.products
                           )
-        if right == "": right="0"  # degradation substion
+        if right == "": right = "0"  # degradation substion
 
         rate_info = f"with rate {self.rate}"
         # one-directional vs equilibrium substions

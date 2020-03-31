@@ -14,24 +14,18 @@ from scipy.special import comb
 
 
 class ChemicalLangevin(ItoSDE):
+    '''
+    Implements
+        dY = {S @ a(Y)}dt + {S * sqrt(a(Y))}dW
+    '''
 
     def __init__(self, nb_species, ls_reactions):
 
         self.nb_species = nb_species
         self.nb_reactions = len(ls_reactions)
 
-        ls_rates = []
-        ls_idxs  = []
-        ls_coeff = []
-        for react in ls_reactions:
-            ls_rates.append(react.rate)
-            ls_idxs.append([subs.species_id for subs in react.substrates])
-            ls_coeff.append([subs.coeff for subs in react.substrates])
-        self.ar_rates = np.array(ls_rates)[:, np.newaxis]
-        self.ar_idxs  = np.array(list(zip_longest(*ls_idxs, fillvalue=nb_species)))
-        self.ar_coeff = np.array(list(zip_longest(*ls_coeff, fillvalue=0)))
-
-        self.sm_mat = self.generate_stoichiometric_matrix(ls_reactions)
+        self.generate_propensity_parameters(ls_reactions)
+        self.generate_stoichiometric_matrix(ls_reactions)
 
         super().__init__(self.cl_drift, self.cl_dispersion,
                          noise_mixing_dim=self.nb_reactions)
@@ -47,22 +41,52 @@ class ChemicalLangevin(ItoSDE):
         prop = np.ones((self.nb_reactions, x.shape[1]))
         # breakpoint()
         prop = self.ar_rates * prop
-        for idxs, coeff in zip(self.ar_idxs, self.ar_coeff):
-            active = idxs < self.nb_species
-            idxs = idxs[active]
-            coeff = coeff[active][:, np.newaxis]
-            prop *= comb(x[idxs], coeff)
+        #  we iterate over the number of substrates
+        for idcs, coeffs in zip(self.ar_subs_idcs, self.ar_subs_coeffs):
+            # breakpoint()
+            active = idcs < self.nb_species
+            idcs = idcs[active]
+            coeffs = coeffs[active][:, np.newaxis]
+            prop[active] *= comb(x[idcs], coeffs)
 
         return prop
 
     def generate_stoichiometric_matrix(self, ls_reactions):
 
-        sm_matrix = []
+        sm_mat = []
         for react in ls_reactions:
-            v = np.zeros(self.nb_species)  # stoichiometric vector
+            sm_vec = np.zeros(self.nb_species)  # stoichiometric vector
             for species_idx, coeff in react.substrates:
-                v[species_idx] = -coeff  # substrts are used up
+                sm_vec[species_idx] = -coeff  # substrates are used up
             for species_idx, coeff in react.products:
-                v[species_idx] = +coeff  # products are created
-            sm_matrix.append(v)
-        return np.array(sm_matrix).T
+                sm_vec[species_idx] = +coeff  # products are created
+            sm_mat.append(sm_vec)
+
+        self.sm_mat = np.array(sm_mat).T  # sm_vec's are columns of sm_mat
+
+    def generate_propensity_parameters(self, ls_reactions):
+        '''
+        Generates three arrays:
+            - ar_rates:       with shape (nb_reactions, 1)
+                              storing the rates of all reactions
+            - ar_subs_idcs:   with shape (max_nb_substrates, nb_reactions)
+                              storing the indices of substrates for all reactions
+            - ar_subs_coeffs: with shape (max_nb_substrates, nb_reactions)
+                              storing the coefficients
+        '''
+
+        ls_rates, ar_subs_idcs, ls_subs_coeffs = [], [], []
+        for react in ls_reactions:
+            ls_rates.append(react.rate)
+            ar_subs_idcs.append([subs.species_id for subs in react.substrates])
+            ls_subs_coeffs.append([subs.coeff for subs in react.substrates])
+
+        self.ar_rates = np.array(ls_rates)[:, np.newaxis]
+
+        # both 'ar_subs_idcs' and ' ar_subs_coeffs' have shape
+        #   (max(nb_substrates), nb_reactions)
+        # row s stores sth substrate indices and coefficients for all reactions
+        self.ar_subs_idcs  = np.array(list(zip_longest(*ar_subs_idcs,
+                                                  fillvalue=self.nb_species)))
+        self.ar_subs_coeffs = np.array(list(zip_longest(*ls_subs_coeffs,
+                                                   fillvalue=0)))

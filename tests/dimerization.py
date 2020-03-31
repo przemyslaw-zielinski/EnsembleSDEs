@@ -14,40 +14,51 @@ import math
 cwd = os.getcwd()
 sys.path.append(cwd + '/..')
 import spaths
-
+from spaths.reactions import intermediate, Reaction
 
 # seed setting
-seed = 357
+seed = 3579
 rng = np.random.default_rng(seed)
 rng.integers(10**3, size=10**3)  # warm up of RNG
 
 # simulation parameters
 dt = 1e-4
-nsam = 100
+nsam = 10
 tspan = (0.0, 10.0)
 
 # initial conditions
 x0, y0 = [100.0]*nsam, [100.0]*nsam
 
-k1 = 1.0
-k2 = 100.0
-k3 = 50.0
+Y  = intermediate(1)
+X  = intermediate(0)
+X2 = intermediate(0, 2)
 
-def drift(t, u, du):
-    du[0] = 2*k2*u[1] - 2*k1*u[0]*(u[0]-1) + k3
-    du[1] = k1*u[0]*(u[0]-1) - k2*u[1]
+c1 = 1.0
+c2 = 100.0
+c3 = 50.0
 
-def dispersion(t, u, du):
-    du[0,0] = -2*np.sqrt(k1*u[0]*(u[0]-1))
-    du[0,1] = 2*np.sqrt(k2*u[1])
-    du[0,2] = np.sqrt(k3)
-    du[1,0] = np.sqrt(k1*u[0]*(u[0]-1))
-    du[1,1] = -np.sqrt(k2*u[1])
-    du[1,2] = 0
+dimerization = Reaction(c1, [X2], [Y])
+dissociation = Reaction(c2, [Y], [X2])
+production   = Reaction(c3, [], [X])
 
-sde = spaths.SDE(drift, dispersion, 3)
+print(production)
+
+# def drift(t, u, du):
+#     du[0] = 2*k2*u[1] - 2*k1*u[0]*(u[0]-1) + k3
+#     du[1] = k1*u[0]*(u[0]-1) - k2*u[1]
+#
+# def dispersion(t, u, du):
+#     du[0,0] = -2*np.sqrt(k1*u[0]*(u[0]-1))
+#     du[0,1] = 2*np.sqrt(k2*u[1])
+#     du[0,2] = np.sqrt(k3)
+#     du[1,0] = np.sqrt(k1*u[0]*(u[0]-1))
+#     du[1,1] = -np.sqrt(k2*u[1])
+#     du[1,2] = 0
+#
+# sde = spaths.SDE(drift, dispersion, 3)
+cle = spaths.ChemicalLangevin(2, [dimerization, dissociation, production])
 ens0 = spaths.make_ens(x0, y0)
-sol = spaths.EMSolver(sde, ens0, tspan, dt, rng)
+sol = spaths.EMSolver(cle, ens0, tspan, dt, rng)
 
 fig, ax = plt.subplots(figsize=(8,6))
 ls = 16
@@ -55,10 +66,12 @@ lw = 2
 
 tplot = sol.t[::50]
 splot = sol(tplot)
-ax.plot(tplot, splot[:,11,1], color="C1", alpha=.5)
-ax.plot(tplot, splot[:,11,0], color="C0", alpha=.5)
+ax.plot(tplot, splot[:,2,1], color="C1", alpha=.5)
+ax.plot(tplot, splot[:,2,0], color="C0", alpha=.5)
 
-# slow_avg = np.average(solution[idx,:,0], axis=1)
+slow_avg = np.average(splot[:,:,0] + 2*splot[:,:,1], axis=1)
+ax.axhline(y=c3, color='k', linestyle='--')
+ax.plot(tplot[1:], (slow_avg[1:] - 300) / tplot[1:])
 # slow_std = np.std(solution[idx,:,0], axis=1)
 # ax.plot(tgrid[idx], slow_avg, color="C0", linewidth=lw)
 # ax.fill_between(tgrid[idx], slow_avg - slow_std, slow_avg + slow_std,
