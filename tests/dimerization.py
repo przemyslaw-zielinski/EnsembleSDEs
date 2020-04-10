@@ -6,6 +6,7 @@ Created on Fri Jan 31 2020
 @author: Przemyslaw Zielinski
 """
 
+from timeit import default_timer as timer
 import matplotlib.pyplot as plt
 import numpy as np
 import sys, os
@@ -41,31 +42,38 @@ dimerization = Reaction(c1, [X2], [Y])
 dissociation = Reaction(c2, [Y], [X2])
 production   = Reaction(c3, [], [X])
 
-print(production)
+def drift(t, u, du):
+    du[0] = 2*c2*u[1] - 2*c1*u[0]*(u[0]-1) + c3
+    du[1] = c1*u[0]*(u[0]-1) - c2*u[1]
 
-# def drift(t, u, du):
-#     du[0] = 2*k2*u[1] - 2*k1*u[0]*(u[0]-1) + k3
-#     du[1] = k1*u[0]*(u[0]-1) - k2*u[1]
-#
-# def dispersion(t, u, du):
-#     du[0,0] = -2*np.sqrt(k1*u[0]*(u[0]-1))
-#     du[0,1] = 2*np.sqrt(k2*u[1])
-#     du[0,2] = np.sqrt(k3)
-#     du[1,0] = np.sqrt(k1*u[0]*(u[0]-1))
-#     du[1,1] = -np.sqrt(k2*u[1])
-#     du[1,2] = 0
-#
-# sde = spaths.SDE(drift, dispersion, 3)
+def dispersion(t, u, du):
+    du[0,0] = -2*np.sqrt(c1*u[0]*(u[0]-1))
+    du[0,1] = 2*np.sqrt(c2*u[1])
+    du[0,2] = np.sqrt(c3)
+    du[1,0] = np.sqrt(c1*u[0]*(u[0]-1))
+    du[1,1] = -np.sqrt(c2*u[1])
+    du[1,2] = 0
+
+sde = spaths.ItoSDE(drift, dispersion, 3)
 cle = spaths.ChemicalLangevin(2, [dimerization, dissociation, production])
 ens0 = spaths.make_ens(x0, y0)
-sol = spaths.EMSolver(cle, ens0, tspan, dt, rng)
+
+start = timer()
+sol_sde = spaths.EMSolver(sde, ens0, tspan, dt, rng)
+end = timer()
+print("sde sim:", end - start)
+
+start = timer()
+sol_cle = spaths.EMSolver(cle, ens0, tspan, dt, rng)
+end = timer()
+print("cle sim:", end - start)
 
 fig, ax = plt.subplots(figsize=(8,6))
 ls = 16
 lw = 2
 
-tplot = sol.t[::50]
-splot = sol(tplot)
+tplot = sol_cle.t[::50]
+splot = sol_cle(tplot)
 ax.plot(tplot, splot[:,2,1], color="C1", alpha=.5)
 ax.plot(tplot, splot[:,2,0], color="C0", alpha=.5)
 

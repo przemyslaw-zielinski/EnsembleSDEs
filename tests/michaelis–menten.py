@@ -36,12 +36,15 @@ nA = 6.023e23  # Avagadro’s number
 vol = 1e-15  # volume of system
 
 y0 = np.zeros(4)
-y0[0] = np.round(5e-7*nA*vol)  # molecules of substrate S
-y0[1] = np.round(2e-7*nA*vol)  # molecules of enzyme E
+y0[0] = 3000  # np.round(5e-7*nA*vol)  # molecules of substrate S
+y0[1] = 220  # np.round(2e-7*nA*vol)  # molecules of enzyme E
 ens0 = np.tile(y0, (5, 1))
 # print(ens0)
 
 c1, c2, c3 = 1e6/(nA*vol), 1e-4, 0.1
+c1 = 1e-4 # binding rate
+c2 = 1.0 # unbinding rate
+c3 = 1e-4 # production rate
 
 binding = Reaction(c1, [S, E], [ES])
 dissociation = Reaction(c2, [ES], [E, S])
@@ -51,8 +54,8 @@ print(binding)
 print(dissociation)
 print(product)
 
-t_span = (0.0, 50.0)
-dt = t_span[1] / 250
+t_span = (0.0, 1.0)
+dt = 1e-4  # t_span[1] / 2500
 
 cle = spaths.ChemicalLangevin(4, [binding, dissociation, product])
 # print(cle.ar_idxs)
@@ -62,7 +65,16 @@ sol = spaths.EMSolver(cle, ens0, t_span, dt, rng)
 
 fig, ax = plt.subplots(figsize=(8,6))
 
-ax.plot(sol.t, sol.p[1])
+tt = sol.t
+ss, ee, cc, pp = sol.p[1].T
+# ax.plot(sol.t, sol.p[1])# / sol.p[1, 100])
+
+ax.plot(tt, ss - ss[-1], label="substrate")
+ax.plot(tt, ee - ee[-1], "-.", label="enzyme")
+ax.plot(tt, cc - cc[-1], "-.", label="complex")
+ax.plot(tt, pp - pp[-1], label="product")
+
+ax.legend()
 
 fig.tight_layout()
 fig.savefig(f"figs/{file_name}.pdf")

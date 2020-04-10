@@ -19,7 +19,7 @@ class ItoSDE():
         Parameters 'drift' and 'dispersion' have to be functions of
         scalar time t, and arrays x and dx,
         such that dx stores the value of A and B respectively:
-        
+
         ->  def drift(t, x, dx):
                 dx = A(t,x)
 
@@ -33,6 +33,9 @@ class ItoSDE():
             self.nmd = ()
         else:  # TODO: add case for a scalar noise (nmd=1)
             self.nmd = (noise_mixing_dim,)
+
+    def coeffs(self, t, ens):  # TODO: can we use that in solvers?
+        return self.drif(t, ens), self.disp(t, ens)
 
     def drif(self, t, ens):
         # self.test_dim(ens)

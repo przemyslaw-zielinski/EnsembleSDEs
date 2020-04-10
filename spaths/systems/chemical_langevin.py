@@ -31,10 +31,12 @@ class ChemicalLangevin(ItoSDE):
                          noise_mixing_dim=self.nb_reactions)
 
     def cl_drift(self, t, u, du):
-        du[:] = self.sm_mat @ self.propensity(u)
+        self.propensity_u = self.propensity(u)
+        du[:] = self.sm_mat @ self.propensity_u
 
     def cl_dispersion(self, t, u, du):
-        du[:] = self.sm_mat[..., np.newaxis] * np.sqrt(self.propensity(u))
+        # du[:] = self.sm_mat[..., np.newaxis] * np.sqrt(self.propensity(u))
+        du[:] = self.sm_mat[..., np.newaxis] * np.sqrt(self.propensity_u)
 
     def propensity(self, x):  # x.shape = (nb_species, nb_samples)
 
