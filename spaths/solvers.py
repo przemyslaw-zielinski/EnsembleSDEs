@@ -7,6 +7,7 @@ Created on Fri Jan 31 2020
 """
 import numpy as np
 from .spath import StochasticPath
+from abc import ABC, abstractmethod
 
 def EMSolver(sde, ens0, tspan, dt, rng):
     '''
@@ -52,6 +53,61 @@ def EMSolver(sde, ens0, tspan, dt, rng):
                           + np.sqrt(dt)*mult(sde.disp(t, sol[n]), dw)
 
     return StochasticPath(tgrid, sol)
+
+class _Solver(ABC):
+
+    def __init__(self, rng):
+        self.rng = rng
+
+    @abstractmethod
+    def solve(self, sde, ens0, tspan, dt):
+        pass
+
+    @abstractmethod
+    def burst(self, sde, ens0, tsteps, dt, in_place=True):
+        pass
+
+class EulerMaruyama(_Solver):
+
+    def __init__(self, rng, fold=None):
+        super().__init__(rng)
+
+    def solve(self, sde, ens0, tspan, dt):
+        ens0 = np.asarray(ens0)
+        tgrid, nsteps = generate_tgrid(tspan, dt)
+
+        dw_shape, dw_mult = _get_noise_params(sde, ens0)
+        sol = np.vstack((ens0[np.newaxis,:], np.zeros((nsteps,) + ens0.shape)))
+        for n, t in enumerate(tgrid[:-1]):
+            dw = self.rng.standard_normal(dw_shape)
+            sol[n+1] = sol[n] + dt*sde.drif(t, sol[n]) \
+                              + np.sqrt(dt)*dw_mult(sde.disp(t, sol[n]), dw)
+
+        return StochasticPath(tgrid, sol)
+
+    def burst(self, sde, ens, tsteps, dt, in_place=True):
+
+        ens = np.asarray(ens)
+        t, nsteps = tsteps
+
+        dw_shape, dw_mult = _get_noise_params(sde, ens)
+        for n in range(nsteps):
+            dw = self.rng.standard_normal(dw_shape, dtype=ens.dtype)
+            ens = ens + dt*sde.drif(t, ens) \
+                      + np.sqrt(dt)*dw_mult(sde.disp(t, ens), dw)
+            t += dt
+
+        return ens
+
+def _get_noise_params(sde, ens):
+    if len(sde.nmd) == 0:
+        dw_shape = ens.shape
+        smult = lambda disp_vec, dw: disp_vec * dw
+    else:
+        dw_shape = (len(ens),) + sde.nmd
+        # sum over noise dimension k; i = nsam, j = ndim
+        smult = lambda disp_mat, dw: np.einsum('ijk,ik->ij', disp_mat, dw)
+    return dw_shape, smult
 
 def generate_tgrid(tspan, dt):
     tgrid = []

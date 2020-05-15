@@ -7,6 +7,7 @@ Created on Fri Mar 27 2020
 """
 
 import numpy as np
+from jax import jacfwd, jacrev, jit, vmap
 
 class ItoSDE():
 
@@ -40,17 +41,24 @@ class ItoSDE():
     def drif(self, t, ens):
         # self.test_dim(ens)
         # breakpoint()
-        dx = np.zeros(ens.shape)
+        dx = np.zeros_like(ens)
         self.drift(t, ens.T, dx.T)  # (ndim, nsam)
         return dx
 
     def disp(self, t, ens):
         # self.test_dim(ens)
         # breakpoint()
-        dx = np.zeros(ens.shape + self.nmd)
+        dx = np.zeros(ens.shape + self.nmd, dtype=ens.dtype)
         self.dispersion(t, ens.T, np.moveaxis(dx, 0, -1))  # (ndim, (nmd,) nsam)
         return dx
 
     def test_dim(self, ens):
         if ens.ndim != 2 or ens.shape[1] != self.ndim:
             raise IndexError(f"Bad ensemble: shape={ens.shape}.")
+
+class SDETransform():
+
+    def __init__(self, function):
+        self.f = vmap(function, in_axes=1, out_axes=1)
+        self.df = jit(vmap(jacfwd(function), in_axes=1, out_axes=0))
+        self.ddf = jit(jacfwd(jacrev(function)))
