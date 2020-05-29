@@ -23,14 +23,14 @@ rng.randint(10**5, size=10**3)  # warm up of RNG
 
 
 # model parameters
-nparts = 10
+nparts = 16
 box_length = 10
 dimer = {0, 1}  # indices of particles forming the dimer
 inv_temp = 0.5
 
 # potentials
 strength = 1.0
-interaction_distance = 1.0
+interaction_distance = 0.5
 wca = potentials.WCAPotential(strength, interaction_distance)
 
 barrier_height = 10.0
@@ -47,7 +47,7 @@ V = potentials.PairwisePotential(Wmat, dim=2, box_length=box_length)
 # simulation parameters
 dt = 1e-4
 nsam = 1
-tspan = (0.0, 10.0)
+tspan = (0.0, 5.0)
 
 # gentle initialization of particles
 nsteps = 200
