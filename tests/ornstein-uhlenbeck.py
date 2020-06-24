@@ -12,7 +12,6 @@ cwd = os.getcwd()
 sys.path.append(cwd + '/..')
 
 import matplotlib.pyplot as plt
-import jax.numpy as jnp
 import numpy as np
 import spaths
 
@@ -26,7 +25,8 @@ A = np.array(
     [[-1, 1],
      [ 0, -1 / eps]]
 )
-B = np.diag([np.sqrt(2 / bet), np.sqrt(2 / (eps*bet))])
+b = np.array([np.sqrt(2 / bet), np.sqrt(2 / (eps*bet))])
+B = np.diag(b)
 
 # seed setting
 seed = 3579
@@ -41,15 +41,9 @@ tspan = (0.0, 10.0)
 # initial conditions
 x0, y0 = [2.0]*nsam, [2.0]*nsam
 
-def drift(t, u, du):
-    du[:] = A @ u  # need to use [:] because du is a local view
-
-def dispersion(t, u, du):
-    du[0], du[1] = np.diag(B)
-
-sde = spaths.SDE(drift, dispersion)
+oue = spaths.OrnsteinUhlenbeck(A, b)
 ens0 = spaths.make_ens(x0, y0)
-sol = spaths.EMSolver(sde, ens0, tspan, dt, rng)
+sol = spaths.EMSolver(oue, ens0, tspan, dt, rng)
 
 fig, ax = plt.subplots(figsize=(8,6))
 ls = 16
@@ -71,6 +65,7 @@ fig.tight_layout()
 fig.savefig(f"figs/{file_name}.pdf")
 plt.close()
 
+# TODO: move to the class for linear systems
 def cov_inv(drmat, dimat, tol=10**(-10)):
     '''
     Computes covariance matrix of invariant measure of linear SDE.

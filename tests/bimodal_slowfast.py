@@ -43,8 +43,14 @@ def dispersion(t, x, dx):
     dx[0] = np.sqrt(2*xtemp)
     dx[1] = np.sqrt(2*ytemp/eps)
 
-sde = spaths.SDE(drift, dispersion)
-ens0 = spaths.make_ens(x0, y0)
+sde = spaths.ItoSDE(drift, dispersion)
+ens0 = spaths.make_ens(x0, y0).astype(dtype=np.float32)
+
+print(f"{ens0.dtype = }")
+em = spaths.EulerMaruyama(rng)
+ens_test = em.burst(sde, ens0, (0.0, 3), dt)
+print(f"{ens_test.dtype = }")
+
 sol = spaths.EMSolver(sde, ens0, tspan, dt, rng)
 print(sol)
 
