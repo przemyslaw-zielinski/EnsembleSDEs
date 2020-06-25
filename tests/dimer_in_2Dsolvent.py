@@ -47,7 +47,7 @@ V = potentials.PairwisePotential(Wmat, dim=2, box_length=box_length)
 # simulation parameters
 dt = 1e-4
 nsam = 1
-tspan = (0.0, 5.0)
+tspan = (0.0, 1.0)
 
 # gentle initialization of particles
 nsteps = 200
