@@ -38,8 +38,9 @@ class OrnsteinUhlenbeck(ItoSDE):
         super().__init__(self.ou_drift, self.ou_dispersion,
                          noise_mixing_dim=nmd)
 
-    def ou_drift(self, t, x, dx):
-        dx[:] = self.A @ x  # need to use [:] because du is a local view
+    def ou_drift(self, t, x):#, dx):
+        # dx[:] = self.A @ x  # need to use [:] because du is a local view
+        return self.A @ x
 
     def ou_dispersion(self, t, x, dx):
         # dx[:] = self.B @ np.ones_like(u)  # only works for diagonal matrices
