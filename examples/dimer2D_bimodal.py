@@ -20,6 +20,9 @@ seed = 3579
 rng = np.random.RandomState(seed)
 rng.randint(10**5, size=10**3)  # warm up of RNG
 
+# solver
+em = spaths.EulerMaruyama(rng)
+
 # model parameters
 inv_temp = 0.4
 barrier_height = 10.0
@@ -43,7 +46,6 @@ tspan = (0.0, 35.0)
 
 sde = spaths.OverdampedLangevin(V, inv_temp)
 x0 = np.array([[0.0, 0.0, compact_state, compact_state]])
-em = spaths.EulerMaruyama(rng)
 
 sol = em.solve(sde, x0, tspan, dt)
 bond_lengths = [bond_length(x.T) for x in sol.x]

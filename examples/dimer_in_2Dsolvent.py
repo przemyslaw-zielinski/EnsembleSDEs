@@ -21,6 +21,9 @@ seed = 3579
 rng = np.random.RandomState(seed)
 rng.randint(10**5, size=10**3)  # warm up of RNG
 
+# solver
+em = spaths.EulerMaruyama(rng)
+
 
 # model parameters
 nparts = 16
@@ -47,14 +50,14 @@ V = potentials.PairwisePotential(Wmat, dim=2, box_length=box_length)
 # simulation parameters
 dt = 1e-4
 nsam = 1
-tspan = (0.0, 1.0)
+tspan = (0.0, 10.0)
 
 # gentle initialization of particles
 nsteps = 200
 ens0 = potentials.initialize_particles(nparts, V, inv_temp, dt, 200, rng)
 
 sde = spaths.OverdampedLangevin(V, inv_temp)
-sol = spaths.EMSolver(sde, ens0, tspan, dt, rng)
+sol = em.solve(sde, ens0, tspan, dt)
 
 # plot evolution of dimer length
 fig, ax = plt.subplots(figsize=(8,6))

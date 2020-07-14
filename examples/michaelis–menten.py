@@ -27,6 +27,9 @@ seed = 357
 rng = np.random.default_rng(seed)
 rng.integers(10**3, size=10**3)  # warm up of RNG
 
+# solver
+em = spaths.EulerMaruyama(rng)
+
 S = intermediate(0)  # substrate
 E = intermediate(1)  # enzyme
 ES = intermediate(2) # complex
@@ -60,7 +63,7 @@ dt = 1e-4  # t_span[1] / 2500
 cle = spaths.ChemicalLangevin(4, [binding, dissociation, product])
 # print(cle.ar_idxs)
 # print(cle.ar_coeff)
-sol = spaths.EMSolver(cle, ens0, t_span, dt, rng)
+sol = em.solve(cle, ens0, t_span, dt)
 
 
 fig, ax = plt.subplots(figsize=(8,6))

@@ -51,7 +51,7 @@ em = spaths.EulerMaruyama(rng)
 ens_test = em.burst(sde, ens0, (0.0, 3), dt)
 print(f"{ens_test.dtype = }")
 
-sol = spaths.EMSolver(sde, ens0, tspan, dt, rng)
+sol = em.solve(sde, ens0, tspan, dt)
 print(sol)
 
 fig, ax = plt.subplots(figsize=(8,6))

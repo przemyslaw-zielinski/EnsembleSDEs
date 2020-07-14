@@ -41,13 +41,16 @@ seed = 3579
 rng = np.random.default_rng(seed)
 rng.integers(10**3, size=10**3)  # warm up of RNG
 
+# solver
+em = spaths.EulerMaruyama(rng)
+
 xa0 = np.array([equ_len] * nsam)
 xc0 = np.array([0.] * nsam)
 yc0 = np.array([equ_len] * nsam)
 
 sde = spaths.OverdampedLangevin(V, inv_temp)
 ens0 = spaths.make_ens(xa0, xc0, yc0)
-sol = spaths.EMSolver(sde, ens0, tspan, dt, rng)
+sol = em.solve(sde, ens0, tspan, dt)
 
 fig, ax = plt.subplots(figsize=(8,6))
 ls = 16

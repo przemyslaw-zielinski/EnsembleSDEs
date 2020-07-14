@@ -79,7 +79,10 @@ class EulerMaruyama(_Solver):
         dw_shape = sde.get_noise_shape(ens0)
         sol = np.vstack((ens0[np.newaxis,:], np.zeros((nsteps,) + ens0.shape)))
         for n, t in enumerate(tgrid[:-1]):
-            dw = self.rng.standard_normal(dw_shape, dtype=ens0.dtype)
+            # casting to dtype of ens0 insted of specifying dtype in
+            # standard_normal because jax uses legacy random generators
+            # TODO: change in the future
+            dw = self.rng.standard_normal(dw_shape).astype(ens0.dtype)#, dtype=ens0.dtype)
             sol[n+1] = sol[n] + dt*sde.drif(t, sol[n]) \
                               + np.sqrt(dt)*sde.dnp(t, sol[n], dw)
 
@@ -92,7 +95,7 @@ class EulerMaruyama(_Solver):
 
         dw_shape = sde.get_noise_shape(ens)
         for n in range(nsteps):
-            dw = self.rng.standard_normal(dw_shape, dtype=ens.dtype)
+            dw = self.rng.standard_normal(dw_shape).astype(ens.dtype)#, dtype=ens.dtype)
             ens = ens + dt*sde.drif(t, ens) \
                       + np.sqrt(dt)*sde.dnp(t, ens, dw)
             t += dt

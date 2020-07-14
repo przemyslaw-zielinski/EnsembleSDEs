@@ -20,6 +20,9 @@ seed = 357
 rng = np.random.default_rng(seed)
 rng.integers(10**3, size=10**3)  # warm up of RNG
 
+# solver
+em = spaths.EulerMaruyama(rng)
+
 # simulation parameters
 dt = 1e-2
 nsam = 10
@@ -35,9 +38,9 @@ def dispersion(t, u, du):
     du[0, 0] = u[0]
     du[1, 0] = u[1]
 
-sde = spaths.SDE(drift, dispersion, 1)
+sde = spaths.ItoSDE(drift, dispersion, 1)
 ens0 = spaths.make_ens(x0, y0)
-sol = spaths.EMSolver(sde, ens0, tspan, dt, rng)
+sol = em.solve(sde, ens0, tspan, dt)
 
 fig, ax = plt.subplots(figsize=(8,6))
 ls = 16
