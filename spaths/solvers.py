@@ -76,12 +76,12 @@ class EulerMaruyama(_Solver):
         ens0 = np.asarray(ens0)
         tgrid, nsteps = generate_tgrid(tspan, dt)
 
-        dw_shape, dw_mult = _get_noise_params(sde, ens0)
+        dw_shape = sde.get_noise_shape(ens0)
         sol = np.vstack((ens0[np.newaxis,:], np.zeros((nsteps,) + ens0.shape)))
         for n, t in enumerate(tgrid[:-1]):
-            dw = self.rng.standard_normal(dw_shape)
+            dw = self.rng.standard_normal(dw_shape, dtype=ens0.dtype)
             sol[n+1] = sol[n] + dt*sde.drif(t, sol[n]) \
-                              + np.sqrt(dt)*dw_mult(sde.disp(t, sol[n]), dw)
+                              + np.sqrt(dt)*sde.dnp(t, sol[n], dw)
 
         return StochasticPath(tgrid, sol)
 
@@ -90,24 +90,14 @@ class EulerMaruyama(_Solver):
         ens = np.asarray(ens)
         t, nsteps = tsteps
 
-        dw_shape, dw_mult = _get_noise_params(sde, ens)
+        dw_shape = sde.get_noise_shape(ens)
         for n in range(nsteps):
             dw = self.rng.standard_normal(dw_shape, dtype=ens.dtype)
             ens = ens + dt*sde.drif(t, ens) \
-                      + np.sqrt(dt)*dw_mult(sde.disp(t, ens), dw)
+                      + np.sqrt(dt)*sde.dnp(t, ens, dw)
             t += dt
 
         return ens
-
-def _get_noise_params(sde, ens):
-    if len(sde.nmd) == 0:
-        dw_shape = ens.shape
-        smult = lambda disp_vec, dw: disp_vec * dw
-    else:
-        dw_shape = (len(ens),) + sde.nmd
-        # sum over noise dimension k; i = nsam, j = ndim
-        smult = lambda disp_mat, dw: np.einsum('ijk,ik->ij', disp_mat, dw)
-    return dw_shape, smult
 
 def generate_tgrid(tspan, dt):
     tgrid = []
