@@ -7,8 +7,9 @@ Created on Fri Mar 27 2020
 """
 
 import numpy as np
+import jax.numpy as jnp
 from inspect import signature
-from jax import jacfwd, jacrev, jit, vmap
+from jax import jacfwd, hessian, jit, vmap
 
 class ItoSDE():
 
@@ -22,7 +23,7 @@ class ItoSDE():
         scalar time t and arrays x, and optionally of array dx,
         such that dx stores the value of A and B respectively:
 
-        ->  def drift(t ,x):
+        ->  def drift(t, x):
                 return A(t, x)
         ->  def drift(t, x, dx):
                 dx[:] = A(t, x)
@@ -31,6 +32,10 @@ class ItoSDE():
                 return B(t, x)
         ->  dispersion(t, x, dx):
                 dx[:] = B(t, x)
+
+        Here t is float and x.shape = (ndim, nsam).
+        The drift should result in an array of shape (ndim, nsam).
+        The dispersion should result in an arryay of shape (ndim[, nmd], nsam)
 
         Parameters
         ----------
@@ -57,6 +62,7 @@ class ItoSDE():
             self.diff = self._gene_diff
 
     # various drift and dispersion options that can be chosen in init
+    # here ens.shape = (nsam, ndim)
     def _ex_drif(self, t, ens):
         return self._drif(t, ens.T).T
 
@@ -66,11 +72,13 @@ class ItoSDE():
         return dx
 
     def _ex_disp(self, t, ens):
-        return self._disp(t, ens.T).T
+        return np.moveaxis(self._disp(t, ens.T), -1, 0)  # (d[, m], s) -> (s, d[, m])
+        # (nsam, ndim[, nmd])
 
     def _im_disp(self, t, ens):
         dx = np.zeros(ens.shape + self.nmd, dtype=ens.dtype)  # (nsam, ndim[, nmd])
-        self._disp(t, ens.T, np.moveaxis(dx, 0, -1))  # (ndim[, nmd], nsam)
+        self._disp(t, ens.T, np.moveaxis(dx, 0, -1))  # (s, d[, m]) -> (d[, m], s)
+        # (ndim[, nmd], nsam)
         return dx
 
     def coeffs(self, t, ens):  # TODO: can we use that in solvers?
@@ -110,7 +118,53 @@ def is_explicit(coeff_func):
 
 class SDETransform():
 
-    def __init__(self, function):
-        self.f = vmap(function, in_axes=1, out_axes=1)
-        self.df = jit(vmap(jacfwd(function), in_axes=1, out_axes=0))
-        self.ddf = jit(jacfwd(jacrev(function)))
+    def __init__(self, func, ifunc):
+        '''
+        function(x) = y with x.shape = (d, b), y.shape = (p, b)
+        where d - input dimesion, p - output dimension, b - batch dimension
+        (coord major)
+        '''
+
+        self.f = jit(func)
+        self.g = jit(ifunc)
+
+        self.df = jit(vmap(jacfwd(func), in_axes=1, out_axes=2))
+        # we map over the batch dimension b
+        # (d, b) -> (p, d, b): array of gradients of components of function
+        self.ddf = jit(vmap(hessian(func), in_axes=1, out_axes=3))
+        # (d, b) -> (p, d, d, b)
+
+    def __call__(self, sde):
+        nmd = sde.nmd[0] if sde.nmd else 0  # TODO: diag noise can change into non-diag
+        return ItoSDE(self.func_drif(sde), self.func_disp(sde), noise_mixing_dim=nmd)
+
+    def func_drif(self, sde):
+
+        def drif(t, y):
+            x = self.g(y)
+            return (
+                batch_dot(self.df(x), sde.drif(t, x.T).T) + \
+                batch_trace(batch_quad(self.ddf(x), np.moveaxis(sde.disp(t, x.T), 0, -1))) / 2
+                )  # (s, d[, m]) -> (d[, m], s)
+        return drif
+
+    def func_disp(self, sde):
+
+        def disp(t, y):
+            x = self.g(y)
+            return batch_mul(self.df(x), np.moveaxis(sde.disp(t, x.T), 0, -1))
+
+        return disp
+
+def batch_dot(bmat, bvec):
+    return np.einsum('pdb,db->pb', bmat, bvec)
+
+def batch_mul(bmat1, bmat2):
+    return np.einsum('pdb,dmb->pmb', bmat1, bmat2)
+
+def batch_quad(bten, bmat):
+    bmatt = np.moveaxis(bmat, 1, 0)
+    return np.einsum('mdb,pdcb,cnb->pmnb', bmatt, bten, bmat)
+
+def batch_trace(bten):
+    return np.einsum('pmmb->pb', bten)
