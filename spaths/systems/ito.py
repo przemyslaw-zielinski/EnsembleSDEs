@@ -35,7 +35,7 @@ class ItoSDE():
 
         Here t is float and x.shape = (ndim, nsam).
         The drift should result in an array of shape (ndim, nsam).
-        The dispersion should result in an arryay of shape (ndim[, nmd], nsam)
+        The dispersion should result in an array of shape (ndim[, nmd], nsam)
 
         Parameters
         ----------
@@ -47,10 +47,8 @@ class ItoSDE():
         self._drif = drift
         self._disp = dispersion
 
-        self.drif = self._ex_drif if is_explicit(drift) else self._im_drif
-        self.disp = self._ex_disp if is_explicit(dispersion) else self._im_disp
-
-        # self.dnp = self._diag_dnp if noise_mixing_dim == 0 else self._gene_dnp
+        self.drif = drift if is_explicit(drift) else self._im_drif
+        self.disp = dispersion if is_explicit(dispersion) else self._im_disp
 
         if noise_mixing_dim == 0:  # diagonal noise
             self.nmd = ()
@@ -61,55 +59,68 @@ class ItoSDE():
             self.dnp = self._gene_dnp
             self.diff = self._gene_diff
 
-    # various drift and dispersion options that can be chosen in init
-    # here ens.shape = (nsam, ndim)
-    def _ex_drif(self, t, ens):
-        return self._drif(t, ens.T).T
-
-    def _im_drif(self, t, ens):
-        dx = np.zeros_like(ens)
-        self._drif(t, ens.T, dx.T)  # (ndim, nsam)
+    # drift and dispersion wrappers when they use dx array
+    # here x.shape = (d, s)
+    def _im_drif(self, t, x):
+        dx = np.zeros_like(x)
+        self._drif(t, x, dx)
         return dx
 
-    def _ex_disp(self, t, ens):
-        return np.moveaxis(self._disp(t, ens.T), -1, 0)  # (d[, m], s) -> (s, d[, m])
-        # (nsam, ndim[, nmd])
-
-    def _im_disp(self, t, ens):
-        dx = np.zeros(ens.shape + self.nmd, dtype=ens.dtype)  # (nsam, ndim[, nmd])
-        self._disp(t, ens.T, np.moveaxis(dx, 0, -1))  # (s, d[, m]) -> (d[, m], s)
-        # (ndim[, nmd], nsam)
+    def _im_disp(self, t, x):
+        dx = np.zeros(self.get_disp_shape(x), dtype=x.dtype)
+        self._disp(t, x, dx)
         return dx
 
-    def coeffs(self, t, ens):  # TODO: can we use that in solvers?
-        return self.drif(t, ens), self.disp(t, ens)
+    # TODO: can we use that in solvers?
+    # def coeffs(self, t, x):
+    #     return self.drif(t, x), self.disp(t, x)
+
+    # options for diffusion computations depending on noise type
+    # _diag = diagonal noise (nmd=0), _gene = general noise (nmd>0)
+    def _diag_diff(self, t, x):
+        disp = self.disp(t, x)  # disp.shape = (d, s)
+        diff = disp * disp
+        # multiplies dXd identity matrix by each col of diff via broadcasting
+        return np.eye(x.shape[0])[..., np.newaxis] * diff
+
+    def _gene_diff(self, t, x):
+        disp = self.disp(t, x)  # disp.shape = (d, m, s)
+        # multiply disp by its transpose with batching along last axis
+        return np.einsum('ijs, kjs->iks', disp, disp)
 
     # options to compute dispersion noise product
-    def _diag_dnp(self, t, ens, dw):  #  for the diagonal noise (nmd = 0)
-        return self.disp(t, ens) * dw
+    def _diag_dnp(self, t, x, dw):
+        return self.disp(t, x) * dw
 
-    def _gene_dnp(self, t, ens, dw):  # for the general case (nmd >= 1)
-        # s - size of ensemble (= nsam)
-        # d - dimension of system (= ndim)
-        # m - mixing dimension of noise (= nmd)
-        return np.einsum('sdm,sm->sd', self.disp(t, ens), dw)
+    def _gene_dnp(self, t, x, dw):
+        return np.einsum('dms,ms->ds', self.disp(t, x), dw)
 
-    def _diag_diff(self, t, ens):
-        disp = self.disp(t, ens)
-        diff = disp * disp
-        # multiplies dXd identity matrix by each row of diff via broadcasting
-        return np.eye(ens.shape[1]) * diff[:, np.newaxis]
+    ##########################################################
+    # versions for computations with ensembles (= data arrays)
+    def ens_drif(self, t, ens):
+        return self.drif(t, ens.T).T
 
-    def _gene_diff(self, t, ens):
-        disp = self.disp(t, ens)
-        return np.einsum('sij,skj->sik', disp, disp)
+    def ens_disp(self, t, ens):
+        # moveaxis: (d[, m], s) -> (s, d[, m])
+        return np.moveaxis(self.disp(t, ens.T), -1, 0)
 
-    def test_dim(self, ens):
+    def ens_diff(self, t, ens):
+        # moveaxis: (d, d, s) -> (s, d, d)
+        return np.moveaxis(self.diff(t, ens.T), -1, 0)
+
+    def ens_dnp(self, t, ens, ens_dw):
+        return self.dnp(t, ens.T, ens_dw.T).T
+    ##########################################################
+
+    def _test_dim(self, ens):
         if ens.ndim != 2 or ens.shape[1] != self.ndim:
             raise IndexError(f"Bad ensemble: shape={ens.shape}.")
 
     def get_noise_shape(self, ens):
         return ens.shape if self.nmd == () else ens.shape[:1] + self.nmd
+
+    def get_disp_shape(self, x):
+        return x.shape if self.nmd == () else (x.shape[0], self.nmd[0], x.shape[1])
 
 
 def is_explicit(coeff_func):
@@ -143,16 +154,16 @@ class SDETransform():
         def drif(t, y):
             x = self.g(y)
             return (
-                batch_dot(self.df(x), sde.drif(t, x.T).T) + \
-                batch_trace(batch_quad(self.ddf(x), np.moveaxis(sde.disp(t, x.T), 0, -1))) / 2
-                )  # (s, d[, m]) -> (d[, m], s)
+                batch_dot(self.df(x), sde.drif(t, x)) + \
+                batch_trace(batch_quad(self.ddf(x), sde.disp(t, x))) / 2
+                )
         return drif
 
     def func_disp(self, sde):
 
         def disp(t, y):
             x = self.g(y)
-            return batch_mul(self.df(x), np.moveaxis(sde.disp(t, x.T), 0, -1))
+            return batch_mul(self.df(x), sde.disp(t, x))
 
         return disp
 

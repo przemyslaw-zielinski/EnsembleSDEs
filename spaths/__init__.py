@@ -8,7 +8,7 @@ This module contains tools for simulating stochastic processes.
 # import spaths.models
 # import spaths.solvers
 
-from .solvers import EMSolver, make_ens, EulerMaruyama
+from .solvers import make_ens, EulerMaruyama
 
 # available stochastic systems
 from .systems.ito import ItoSDE, SDETransform

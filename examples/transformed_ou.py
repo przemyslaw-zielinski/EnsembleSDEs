@@ -69,7 +69,10 @@ tspan = (0.0, 5)
 tsteps = (0.0, 10)
 
 ens0 = np.array([[x0, y0] * nsam], dtype=np.float32).reshape(-1, 2)
-sde_Fou.drif(0, ens0)
+x0 = ens0.T
+
+print(np.allclose(sde_Fou.drif(0, x0), sde_rqp.drif(0, x0)))
+print(np.allclose(sde_Fou.disp(0, x0), sde_rqp.disp(0, x0)))
 
 # timing coeff computations
 timeit_cfg = {
@@ -78,8 +81,8 @@ timeit_cfg = {
     'globals': globals()
 }
 
-print(np.mean(timeit.repeat(stmt='sde_rqp.drif(0, ens0)', **timeit_cfg)))
-print(np.mean(timeit.repeat(stmt='sde_Fou.drif(0, ens0)', **timeit_cfg)))
+print(np.mean(timeit.repeat(stmt='sde_rqp.drif(0, x0)', **timeit_cfg)))
+print(np.mean(timeit.repeat(stmt='sde_Fou.drif(0, x0)', **timeit_cfg)))
 
 sol_rqp = em_rqp.solve(sde_rqp, ens0, tspan, dt)
 sol_Fou = em_Fou.solve(sde_Fou, ens0, tspan, dt)
