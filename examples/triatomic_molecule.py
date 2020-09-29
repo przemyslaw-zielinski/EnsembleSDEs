@@ -50,12 +50,7 @@ yc0 = np.array([equ_len] * nsam)
 
 sde = spaths.OverdampedLangevin(V, inv_temp)
 ens0 = spaths.make_ens(xa0, xc0, yc0)
-<<<<<<< HEAD:tests/triatomic_molecule.py
-sol = spaths.EMSolver(sde, ens0, tspan, dt, rng)
-path = sol.p[0]
-=======
 sol = em.solve(sde, ens0, tspan, dt)
->>>>>>> c2069535610620c06086aaa13fd097622f0038f7:examples/triatomic_molecule.py
 
 
 step=4
