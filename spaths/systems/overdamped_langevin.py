@@ -30,11 +30,13 @@ class OverdampedLangevin(ItoSDE):
 
         super().__init__(self.ol_drift, self.ol_dispersion)
 
-    def ol_drift(self, t, u, du):
-        du[:] = -self.gradV(t, u)
+    def ol_drift(self, t, u):#, du):
+        # du[:] = -self.gradV(t, u)
+        return -self.gradV(t, u)
 
-    def ol_dispersion(self, t, u, du):
-        du[:] = np.sqrt(2 / self.inv_temp)
+    def ol_dispersion(self, t, u):#, du):
+        # du[:] = np.sqrt(2 / self.inv_temp)
+        return np.sqrt(2 / self.inv_temp) * np.ones_like(u)
 
 def squeeze(func):
     def wrapper(*args, **kwargs):

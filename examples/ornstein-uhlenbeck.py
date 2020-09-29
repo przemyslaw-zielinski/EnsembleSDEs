@@ -26,31 +26,38 @@ A = np.array(
      [ 0, -1 / eps]]
 )
 b = np.array([np.sqrt(2 / bet), np.sqrt(2 / (eps*bet))])
-B = np.diag(b)
+bb = np.diag(b)
+B = np.array(
+    [[np.sqrt(2 / bet), np.sqrt(2 / bet), np.sqrt(2 / bet)],
+     [np.sqrt(2 / (eps*bet)), np.sqrt(2 / (eps*bet)), np.sqrt(2 / (eps*bet))]]
+)
 
 # seed setting
 seed = 3579
 rng = np.random.default_rng(seed)
 rng.integers(10**3, size=10**3)  # warm up of RNG
 
+# solver
+em = spaths.EulerMaruyama(rng)
+
 # simulation parameters
 dt = eps / 2
-nsam = 10000
+nsam = 2
 tspan = (0.0, 10.0)
 
 # initial conditions
 x0, y0 = [2.0]*nsam, [2.0]*nsam
 
-oue = spaths.OrnsteinUhlenbeck(A, b)
+oue = spaths.OrnsteinUhlenbeck(A, B)
 ens0 = spaths.make_ens(x0, y0)
-sol = spaths.EMSolver(oue, ens0, tspan, dt, rng)
+sol = em.solve(oue, ens0, tspan, dt)
 
 fig, ax = plt.subplots(figsize=(8,6))
 ls = 16
 lw = 2
 
-ax.plot(sol.t, sol.x[:,3,1])
-ax.plot(sol.t, sol.x[:,3,0])
+ax.plot(sol.t, sol.x[:,0,1])
+ax.plot(sol.t, sol.x[:,0,0])
 
 
 ax.tick_params(
@@ -117,3 +124,5 @@ print("Covariance matrix of invariant Gaussian for EM:")
 print(cov_inv_dt(A, B, dt))
 print("Covariance matrix of invariant Gaussian")
 print(cov_inv(A, B))
+print(f'{oue.nmd = }')
+print(f'{oue.diff(0, ens0) = }')

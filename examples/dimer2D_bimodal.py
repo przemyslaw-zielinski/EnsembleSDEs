@@ -20,6 +20,9 @@ seed = 3579
 rng = np.random.RandomState(seed)
 rng.randint(10**5, size=10**3)  # warm up of RNG
 
+# solver
+em = spaths.EulerMaruyama(rng)
+
 # model parameters
 inv_temp = 0.4
 barrier_height = 10.0
@@ -43,19 +46,18 @@ tspan = (0.0, 35.0)
 
 sde = spaths.OverdampedLangevin(V, inv_temp)
 x0 = np.array([[0.0, 0.0, compact_state, compact_state]])
-em = spaths.EulerMaruyama(rng)
 
 sol = em.solve(sde, x0, tspan, dt)
 bond_lengths = [bond_length(x.T) for x in sol.x]
 data = np.squeeze(sol.x)[::5]
 # print(f"{data.shape = }")
 
-# plot evolution of dimer length
-fig, ax = plt.subplots(figsize=(8,5))
-ax.plot(sol.t[::2], bond_lengths[::2], linewidth=1)
-
-fig.savefig(f"figs/{file_name}_path.pdf")
-plt.close(fig)
+# # plot evolution of dimer length
+# fig, ax = plt.subplots(figsize=(8,5))
+# ax.plot(sol.t[::2], bond_lengths[::2], linewidth=1)
+#
+# fig.savefig(f"figs/{file_name}_path.pdf")
+# plt.close(fig)
 
 # plot correlations of data coordinates
 data_ctr = data - np.mean(data, axis=0)
@@ -88,26 +90,26 @@ ax.set_xlim([0,3])
 ax.set_xlabel("bond length")
 ax.set_ylabel("freq", rotation=0, labelpad=10)
 
-fig.savefig(f"figs/{file_name}_coords.pdf")
+fig.savefig(f"figs/{file_name}.pdf")
 plt.close(fig)
 
-# plot spectral embedding (diff maps) with gaussian kernel
-from sklearn import manifold
-lap_eig = manifold.SpectralEmbedding(n_components=1, affinity='rbf', gamma=1/.5)
-Z = lap_eig.fit_transform(data)
-N = np.linalg.norm(Z, axis=0)
-Z = Z / N
-
-fig, axs = plt.subplots(ncols=5, figsize=(15,3), sharey=True)
-
-axs[0].set_ylabel("z", rotation=0, labelpad=5)
-for n, ax in enumerate(axs[:-1]):
-    axs[n].scatter(data.T[n], Z, s=.5)
-    axs[n].set_xlabel(f"$x_{n}$")
-axs[4].scatter(data_bond_len, Z, s=.5)
-axs[4].set_xlabel("bond length")
-
-
-fig.tight_layout()
-fig.savefig(f"figs/{file_name}_spectral.pdf")
-plt.close(fig)
+# # plot spectral embedding (diff maps) with gaussian kernel
+# from sklearn import manifold
+# lap_eig = manifold.SpectralEmbedding(n_components=1, affinity='rbf', gamma=1/.5)
+# Z = lap_eig.fit_transform(data)
+# N = np.linalg.norm(Z, axis=0)
+# Z = Z / N
+#
+# fig, axs = plt.subplots(ncols=5, figsize=(15,3), sharey=True)
+#
+# axs[0].set_ylabel("z", rotation=0, labelpad=5)
+# for n, ax in enumerate(axs[:-1]):
+#     axs[n].scatter(data.T[n], Z, s=.5)
+#     axs[n].set_xlabel(f"$x_{n}$")
+# axs[4].scatter(data_bond_len, Z, s=.5)
+# axs[4].set_xlabel("bond length")
+#
+#
+# fig.tight_layout()
+# fig.savefig(f"figs/{file_name}_spectral.pdf")
+# plt.close(fig)

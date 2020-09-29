@@ -33,9 +33,12 @@ seed = 3579
 rng = np.random.default_rng(seed)
 rng.integers(10**3, size=10**3)  # warm up of RNG
 
+# solver
+em = spaths.EulerMaruyama(rng)
+
 sde = spaths.OverdampedLangevin(V, inv_temp)
 ens0 = spaths.make_ens(x0)
-sol = spaths.EMSolver(sde, ens0, tspan, dt, rng)
+sol = em.solve(sde, ens0, tspan, dt)
 
 insp_times = np.linspace(*tspan, 5)
 insp_sols = sol(insp_times)

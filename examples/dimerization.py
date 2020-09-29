@@ -22,6 +22,9 @@ seed = 3579
 rng = np.random.default_rng(seed)
 rng.integers(10**3, size=10**3)  # warm up of RNG
 
+# solver
+em = spaths.EulerMaruyama(rng)
+
 # simulation parameters
 dt = 1e-4
 nsam = 10
@@ -59,12 +62,12 @@ cle = spaths.ChemicalLangevin(2, [dimerization, dissociation, production])
 ens0 = spaths.make_ens(x0, y0)
 
 start = timer()
-sol_sde = spaths.EMSolver(sde, ens0, tspan, dt, rng)
+sol_sde = em.solve(sde, ens0, tspan, dt)
 end = timer()
 print("sde sim:", end - start)
 
 start = timer()
-sol_cle = spaths.EMSolver(cle, ens0, tspan, dt, rng)
+sol_cle = em.solve(cle, ens0, tspan, dt)
 end = timer()
 print("cle sim:", end - start)
 

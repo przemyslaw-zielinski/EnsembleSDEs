@@ -41,14 +41,21 @@ seed = 3579
 rng = np.random.default_rng(seed)
 rng.integers(10**3, size=10**3)  # warm up of RNG
 
+# solver
+em = spaths.EulerMaruyama(rng)
+
 xa0 = np.array([equ_len] * nsam)
 xc0 = np.array([0.] * nsam)
 yc0 = np.array([equ_len] * nsam)
 
 sde = spaths.OverdampedLangevin(V, inv_temp)
 ens0 = spaths.make_ens(xa0, xc0, yc0)
+<<<<<<< HEAD:tests/triatomic_molecule.py
 sol = spaths.EMSolver(sde, ens0, tspan, dt, rng)
 path = sol.p[0]
+=======
+sol = em.solve(sde, ens0, tspan, dt)
+>>>>>>> c2069535610620c06086aaa13fd097622f0038f7:examples/triatomic_molecule.py
 
 
 step=4

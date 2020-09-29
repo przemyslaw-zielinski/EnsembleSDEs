@@ -5,8 +5,8 @@ Created on Wed 18 Mar 2020
 """
 
 import numpy as np
-import spaths
-
+from .systems import ItoSDE
+from .solvers import EulerMaruyama
 
 class PairwisePotential():
 
@@ -115,9 +115,11 @@ def initialize_particles(nparts, V, inv_temp, dt, nsteps, rng):
     def relax_dispersion(t, x, dx):
         dx[:] = np.sqrt(2 / inv_temp)
 
-    relax_sde = spaths.ItoSDE(relax_drift, relax_dispersion)
+    relax_sde = ItoSDE(relax_drift, relax_dispersion)
+    relax_ems = EulerMaruyama(rng)
     unif_ens0 = rng.uniform(high=V.box_length, size=(1, 2*nparts))
-    relax_sol = spaths.EMSolver(relax_sde, unif_ens0, (0.0, t_relax), dt, rng)
+    relax_sol = relax_ems.solve(relax_sde, unif_ens0, (0.0, t_relax), dt)
+    # relax_sol = spaths.EMSolver(relax_sde, unif_ens0, (0.0, t_relax), dt, rng)
 
     # dimer_distance = [
     #     box_dist(x[0,0:2], x[0,2:4], box_length=V.box_length)
