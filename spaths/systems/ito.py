@@ -81,7 +81,8 @@ class ItoSDE():
         disp = self.disp(t, x)  # disp.shape = (d, s)
         diff = disp * disp
         # multiplies dXd identity matrix by each col of diff via broadcasting
-        return np.eye(x.shape[0])[..., np.newaxis] * diff
+        eye = np.eye(x.shape[0], dtype=x.dtype)
+        return eye[..., np.newaxis] * diff
 
     def _gene_diff(self, t, x):
         disp = self.disp(t, x)  # disp.shape = (d, m, s)
